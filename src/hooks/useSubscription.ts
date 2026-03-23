@@ -36,28 +36,30 @@ export function useSubscription(
 	pollInterval = 5000,
 ) {
 	const id = `${contractId}:${topic}`
-	paging[id] = paging[id] || {}
 
 	React.useEffect(() => {
+		const state = (paging[id] ||= {
+			lastLedgerStart: undefined,
+			pagingToken: undefined,
+		})
+
 		let timeoutId: NodeJS.Timeout | null = null
 		let stop = false
 
 		async function pollEvents(): Promise<void> {
-			const entry = paging[id]
-			if (!entry) return
 			try {
-				if (!entry.lastLedgerStart) {
+				if (!state.lastLedgerStart) {
 					const latestLedgerState = await server.getLatestLedger()
-					entry.lastLedgerStart = latestLedgerState.sequence
+					state.lastLedgerStart = latestLedgerState.sequence
 				}
 
 				// lastLedgerStart is now guaranteed to be a number
-				const lastLedger = entry.lastLedgerStart
+				const lastLedger = state.lastLedgerStart as number
 
 				const response = await server.getEvents(
-					entry.pagingToken
+					state.pagingToken
 						? {
-								cursor: entry.pagingToken,
+								cursor: state.pagingToken,
 								filters: [
 									{
 										contractIds: [contractId],
@@ -81,9 +83,9 @@ export function useSubscription(
 							},
 				)
 
-				entry.pagingToken = undefined
+				state.pagingToken = undefined
 				if (response.latestLedger) {
-					entry.lastLedgerStart = response.latestLedger
+					state.lastLedgerStart = response.latestLedger
 				}
 				if (response.events && response.events.length > 0) {
 					response.events.forEach((event) => {
@@ -98,7 +100,7 @@ export function useSubscription(
 					})
 					// Store the cursor from the response for pagination
 					if (response.cursor) {
-						entry.pagingToken = response.cursor
+						state.pagingToken = response.cursor
 					}
 				}
 			} catch (error) {
