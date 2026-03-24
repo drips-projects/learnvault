@@ -6,6 +6,7 @@ import Admin from "./pages/Admin"
 import Courses from "./pages/Courses"
 import Credential from "./pages/Credential"
 import Dao from "./pages/Dao"
+import DaoProposals from "./pages/DaoProposals"
 import Debug from "./pages/Debug"
 import Home from "./pages/Home"
 import Leaderboard from "./pages/Leaderboard"
@@ -23,6 +24,7 @@ function App() {
 				<Route path="/courses" element={<Courses />} />
 				<Route path="/learn" element={<Learn />} />
 				<Route path="/dao" element={<Dao />} />
+				<Route path="/dao/proposals" element={<DaoProposals />} />
 				<Route path="/leaderboard" element={<Leaderboard />} />
 				<Route path="/profile" element={<Profile />} />
 				<Route path="/scholarships/apply" element={<ScholarshipApply />} />
