@@ -8,6 +8,7 @@ import Credential from "./pages/Credential"
 import Dao from "./pages/Dao"
 import DaoProposals from "./pages/DaoProposals"
 import Debug from "./pages/Debug"
+import Donor from "./pages/Donor"
 import Home from "./pages/Home"
 import Leaderboard from "./pages/Leaderboard"
 import Learn from "./pages/Learn"
@@ -27,7 +28,8 @@ function App() {
 				<Route path="/dao/proposals" element={<DaoProposals />} />
 				<Route path="/leaderboard" element={<Leaderboard />} />
 				<Route path="/profile" element={<Profile />} />
-				<Route path="/scholarships/apply" element={<ScholarshipApply />} />
+			<Route path="/scholarships/apply" element={<ScholarshipApply />} />
+			<Route path="/donor" element={<Donor />} />
 				<Route path="/admin" element={<Admin />} />
 				<Route path="/treasury" element={<Treasury />} />
 				<Route path="/credentials/:nftId" element={<Credential />} />
