@@ -11,6 +11,9 @@ import { coursesRouter } from "./routes/courses.routes";
 import { eventsRouter } from "./routes/events.routes";
 import { healthRouter } from "./routes/health.routes";
 import { validatorRouter } from "./routes/validator.routes";
+import { commentsRouter } from "./routes/comments.routes";
+import { initDb } from "./db/index";
+
 
 const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
@@ -35,6 +38,8 @@ app.use("/api", healthRouter);
 app.use("/api", coursesRouter);
 app.use("/api", validatorRouter);
 app.use("/api", eventsRouter);
+app.use("/api", commentsRouter);
+
 
 app.get("/api/docs", (_req, res) => {
   res.type("application/yaml").send(openApiYaml);
@@ -46,6 +51,8 @@ if (process.env.NODE_ENV !== "production") {
 
 app.use(errorHandler);
 
-app.listen(env.PORT, () => {
+app.listen(env.PORT, async () => {
+  await initDb();
   console.log(`Server listening on port ${env.PORT}`);
 });
+
