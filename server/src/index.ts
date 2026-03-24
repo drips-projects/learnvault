@@ -33,16 +33,28 @@ import { eventsRouter } from "./routes/events.routes";
 
 
 const envSchema = z.object({
-  PORT: z.coerce.number().int().positive().default(4000),
-  CORS_ORIGIN: z.string().default("http://localhost:5173"),
-  REDIS_URL: z.string().optional(),
-  NODE_ENV: z.string().optional(),
-  JWT_PRIVATE_KEY: pemString.optional(),
-  JWT_PUBLIC_KEY: pemString.optional()
-});
+	PORT: z.coerce.number().int().positive().default(4000),
+	CORS_ORIGIN: z.string().default("http://localhost:5173"),
+})
 
-const env = envSchema.parse(process.env);
+const env = envSchema.parse(process.env)
 
+const app = express()
+const openApiSpec = buildOpenApiSpec()
+const openApiYaml = YAML.stringify(openApiSpec)
+
+app.use(morgan("dev"))
+app.use(
+	cors({
+		origin: env.CORS_ORIGIN,
+	}),
+)
+app.use(express.json())
+
+app.use("/api", healthRouter)
+app.use("/api", coursesRouter)
+app.use("/api", validatorRouter)
+app.use("/api", eventsRouter)
 const isProduction = env.NODE_ENV === "production";
 
 let jwtPrivateKey = env.JWT_PRIVATE_KEY;
@@ -67,18 +79,16 @@ const jwtService = createJwtService(jwtPrivateKey, jwtPublicKey);
 const authService = createAuthService(nonceStore, jwtService);
 
 const app = express();
+
 const openApiSpec = buildOpenApiSpec();
 const openApiYaml = YAML.stringify(openApiSpec);
 
 app.set("trust proxy", 1);
 
 app.use(morgan("dev"));
-app.use(
-  cors({
-    origin: env.CORS_ORIGIN
-  })
-);
+app.use(cors({ origin: env.CORS_ORIGIN }));
 app.use(express.json());
+app.use(globalLimiter);
 
 app.use("/api", healthRouter);
 app.use("/api/auth", createAuthRouter(authService));
@@ -90,17 +100,15 @@ app.use("/api", commentsRouter);
 app.use("/api", adminMilestonesRouter);
 
 app.get("/api/docs", (_req, res) => {
-  res.type("application/yaml").send(openApiYaml);
-});
+	res.type("application/yaml").send(openApiYaml)
+})
 
 if (process.env.NODE_ENV !== "production") {
-  app.use("/api/docs/ui", swaggerUi.serve, swaggerUi.setup(openApiSpec));
+	app.use("/api/docs/ui", swaggerUi.serve, swaggerUi.setup(openApiSpec))
 }
 
-app.use(errorHandler);
+app.use(errorHandler)
 
-app.listen(env.PORT, async () => {
-  await initDb();
-  console.log(`Server listening on port ${env.PORT}`);
-});
-
+app.listen(env.PORT, () => {
+	console.log(`Server listening on port ${env.PORT}`)
+})
