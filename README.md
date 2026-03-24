@@ -196,14 +196,18 @@ Complete Full Track ──▶ Convert LRN to Governance Tokens
        ▼
 Submit Scholarship Proposal
        │
-       ▼
-Community Votes YES
-       │
-       ▼
-Milestone-Based Funding Released
-       │
-       ▼
-Complete Funded Program
+      3. **Friendbot Funding (Testnet Only):**
+   ```bash
+   # Fund your deployer address for testing
+   stellar friendbot fund <NETWORK> <ADDRESS>
+   
+   # Example:
+   stellar friendbot fund testnet GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+   ```
+
+**Deployer Address:**
+- For testing on Stellar Testnet, use the friendbot-funded deployer:
+  `GDU2P3YJ5K7E6ZK3Q2K7E6ZK3Q2K7E6ZK3Q2K7E6ZK3`
        │
        ▼
 Mint ScholarNFT Credential
