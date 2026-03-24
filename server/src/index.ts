@@ -4,32 +4,30 @@ import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yaml";
 import { z } from "zod";
-
 import { errorHandler } from "./middleware/error.middleware";
 import { buildOpenApiSpec } from "./openapi";
 import { coursesRouter } from "./routes/courses.routes";
 import { eventsRouter } from "./routes/events.routes";
 import { healthRouter } from "./routes/health.routes";
 import { validatorRouter } from "./routes/validator.routes";
+import { globalLimiter } from "./middleware/rate-limit.middleware";
 
 const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
-  CORS_ORIGIN: z.string().default("http://localhost:5173")
+  CORS_ORIGIN: z.string().default("http://localhost:5173"),
 });
 
 const env = envSchema.parse(process.env);
 
 const app = express();
+
 const openApiSpec = buildOpenApiSpec();
 const openApiYaml = YAML.stringify(openApiSpec);
 
 app.use(morgan("dev"));
-app.use(
-  cors({
-    origin: env.CORS_ORIGIN
-  })
-);
+app.use(cors({ origin: env.CORS_ORIGIN }));
 app.use(express.json());
+app.use(globalLimiter);
 
 app.use("/api", healthRouter);
 app.use("/api", coursesRouter);
