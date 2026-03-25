@@ -88,7 +88,7 @@ const fetchContractEvents = async (
 			createAppError(
 				ErrorCode.NETWORK_ERROR,
 				"Failed to fetch contract events",
-				{ contractIds },
+				{ contractCount: contractIds.length },
 				err,
 			),
 		)

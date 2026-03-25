@@ -38,8 +38,8 @@ export function useGovernance() {
 			console.warn(
 				createAppError(
 					ErrorCode.CONTRACT_NOT_DEPLOYED,
-					`Contract at ${path} not available`,
-					{ path },
+					"Contract not available",
+					{ contractPath: path },
 					err,
 				),
 			)
@@ -80,7 +80,8 @@ export function useGovernance() {
 
 			const raw = await getProposalsFn()
 			// Transform contract response to Proposal interface
-			return (Array.isArray(raw) ? raw : []).map((p: RawContractProposal) => ({
+			const proposals = Array.isArray(raw) ? raw : []
+			return (proposals as RawContractProposal[]).map((p) => ({
 				id: Number(p.id ?? 0),
 				title: String(p.title ?? ""),
 				description: String(p.description ?? ""),

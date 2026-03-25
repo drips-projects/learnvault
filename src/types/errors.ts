@@ -19,6 +19,7 @@ export interface ErrorContext {
 	methodName?: string
 	walletAddress?: string
 	networkId?: string
+	[key: string]: unknown
 }
 
 export function isAppError(error: unknown): error is AppError {

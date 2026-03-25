@@ -111,7 +111,7 @@ const callFirst = async (
 	throw createAppError(
 		ErrorCode.CONTRACT_NOT_DEPLOYED,
 		"No compatible method found",
-		{ methodNames },
+		{ methodName: methodNames.join(", ") },
 	)
 }
 
