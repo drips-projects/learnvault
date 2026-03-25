@@ -17,11 +17,11 @@ export default function NavBar() {
 	]
 
 	return (
-		<header className="fixed top-0 left-0 w-full z-50 px-6 py-4">
-			<div className="max-w-7xl mx-auto glass rounded-2xl border border-white/5 py-3 px-8 flex items-center justify-between shadow-2xl backdrop-blur-xl">
+		<header className="fixed top-0 left-0 w-full z-50 px-4 sm:px-6 py-4">
+			<div className="relative max-w-7xl mx-auto glass rounded-2xl border border-white/5 py-3 px-4 sm:px-8 flex items-center justify-between shadow-2xl backdrop-blur-xl">
 				<NavLink
 					to="/"
-					className="flex items-center gap-3 group"
+					className="flex items-center gap-2 sm:gap-3 group shrink-0"
 					aria-label="LearnVault home"
 				>
 					<div className="w-8 h-8 bg-linear-to-br from-brand-cyan to-brand-blue rounded-lg flex items-center justify-center font-black text-[10px] shadow-lg shadow-brand-cyan/20 group-hover:scale-110 transition-transform">

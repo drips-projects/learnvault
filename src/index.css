@@ -20,6 +20,7 @@
 		100% {
 			background-position: 0% 50%;
 		}
+
 		50% {
 			background-position: 100% 50%;
 		}
@@ -29,6 +30,7 @@
 		0% {
 			transform: translateX(-100%);
 		}
+
 		100% {
 			transform: translateX(100%);
 		}
@@ -43,8 +45,14 @@ html {
 	scroll-behavior: smooth;
 }
 
+html,
 body {
 	margin: 0;
+	padding: 0;
+	width: 100%;
+}
+
+body {
 	background-color: #05070a;
 	background-image: var(--bg-mesh-gradient);
 	background-size: 200% 200%;

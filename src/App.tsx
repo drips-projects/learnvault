@@ -1,5 +1,4 @@
 import { Outlet, Route, Routes } from "react-router-dom"
-import ComingSoon from "./components/ComingSoon"
 import Footer from "./components/Footer"
 import NavBar from "./components/NavBar"
 import Admin from "./pages/Admin"
@@ -8,6 +7,7 @@ import Credential from "./pages/Credential"
 import Dao from "./pages/Dao"
 import DaoProposals from "./pages/DaoProposals"
 import DaoPropose from "./pages/DaoPropose"
+import Dashboard from "./pages/Dashboard"
 import Debug from "./pages/Debug"
 import Donor from "./pages/Donor"
 import Home from "./pages/Home"
@@ -41,10 +41,7 @@ function App() {
 				<Route path="/treasury" element={<Treasury />} />
 				<Route path="/donor" element={<Donor />} />
 				<Route path="/credentials/:nftId" element={<Credential />} />
-				<Route
-					path="/dashboard"
-					element={<ComingSoon title="My Dashboard" />}
-				/>
+				<Route path="/dashboard" element={<Dashboard />} />
 				<Route path="/debug" element={<Debug />} />
 				<Route path="/debug/:contractName" element={<Debug />} />
 				<Route path="*" element={<NotFound />} />
@@ -54,7 +51,7 @@ function App() {
 }
 
 const AppLayout: React.FC = () => (
-	<div className="min-h-screen flex flex-col pt-24">
+	<div className="min-h-screen flex flex-col pt-24 overflow-x-hidden w-full max-w-full">
 		<NavBar />
 		<main className="flex-1 relative z-10">
 			<Outlet />
