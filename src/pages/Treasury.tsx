@@ -9,6 +9,7 @@ import {
 	Tooltip,
 	ResponsiveContainer,
 } from "recharts"
+import ActivityFeed from "../components/ActivityFeed"
 
 const Treasury: React.FC = () => {
 	// Mock data for the treasury health chart
@@ -169,38 +170,16 @@ const Treasury: React.FC = () => {
 
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
 				<ActivityFeed
+					address={undefined}
+					limit={5}
+					filter="deposit"
 					title="Recent Community Deposits"
-					items={[
-						{
-							user: "G...A1B2",
-							amount: "+500 USDC",
-							time: "2h ago",
-							type: "deposit",
-						},
-						{
-							user: "G...C3D4",
-							amount: "+1,200 USDC",
-							time: "5h ago",
-							type: "deposit",
-						},
-					]}
 				/>
 				<ActivityFeed
+					address={undefined}
+					limit={5}
+					filter="disburse"
 					title="Latest Disbursements"
-					items={[
-						{
-							user: "Scholar...FFF",
-							amount: "-150 USDC",
-							time: "1h ago",
-							type: "disburse",
-						},
-						{
-							user: "Scholar...GGG",
-							amount: "-150 USDC",
-							time: "3h ago",
-							type: "disburse",
-						},
-					]}
 				/>
 			</div>
 
@@ -240,42 +219,6 @@ const LegendItem: React.FC<{ color: string; label: string }> = ({
 			style={{ backgroundColor: color }}
 		/>
 		<span className="text-xs font-bold text-white/60">{label}</span>
-	</div>
-)
-
-const ActivityFeed: React.FC<{ title: string; items: any[] }> = ({
-	title,
-	items,
-}) => (
-	<div className="glass p-8 rounded-[2.5rem] border border-white/5">
-		<h3 className="text-xl font-black mb-8 border-l-4 border-brand-cyan pl-4">
-			{title}
-		</h3>
-		<div className="flex flex-col gap-4">
-			{items.map((item, i) => (
-				<div
-					key={i}
-					className="flex items-center justify-between p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/[0.08] transition-colors group"
-				>
-					<div className="flex items-center gap-4">
-						<div
-							className={`w-2 h-2 rounded-full ${item.type === "deposit" ? "bg-brand-emerald animate-pulse" : "bg-brand-purple"}`}
-						/>
-						<div>
-							<p className="font-bold text-sm">{item.user}</p>
-							<p className="text-[10px] text-white/30 uppercase font-black tracking-widest">
-								{item.time}
-							</p>
-						</div>
-					</div>
-					<p
-						className={`font-black ${item.type === "deposit" ? "text-brand-emerald" : "text-white/80"}`}
-					>
-						{item.amount}
-					</p>
-				</div>
-			))}
-		</div>
 	</div>
 )
 
