@@ -1,15 +1,23 @@
-import { Router } from "express";
-import { requireAdmin } from "../middleware/admin.middleware";
-import { milestoneSubmitRateLimiter } from "../middleware/milestone-rate-limit.middleware";
+import { Router } from "express"
 import {
-  getPendingMilestones,
-  getMilestoneById,
-  approveMilestone,
-  rejectMilestone,
-} from "../controllers/admin-milestones.controller";
-import { submitMilestoneReport } from "../controllers/milestone-submit.controller";
+	getPendingMilestones,
+	getMilestoneById,
+	approveMilestone,
+	rejectMilestone,
+} from "../controllers/admin-milestones.controller"
+import { submitMilestoneReport } from "../controllers/milestone-submit.controller"
+import {
+	approveMilestoneBodySchema,
+	legacyMilestoneSubmitBodySchema,
+	milestoneReportIdParamSchema,
+	milestoneSubmitBodySchema,
+	rejectMilestoneBodySchema,
+} from "../lib/zod-schemas"
+import { requireAdmin } from "../middleware/admin.middleware"
+import { validate } from "../middleware/validate.middleware"
+import { milestoneSubmitRateLimiter } from "../middleware/milestone-rate-limit.middleware"
 
-export const adminMilestonesRouter = Router();
+export const adminMilestonesRouter = Router()
 
 /**
  * @openapi
@@ -28,10 +36,10 @@ export const adminMilestonesRouter = Router();
  *         $ref: '#/components/responses/ForbiddenError'
  */
 adminMilestonesRouter.get(
-  "/admin/milestones/pending",
-  requireAdmin,
-  getPendingMilestones
-);
+	"/admin/milestones/pending",
+	requireAdmin,
+	getPendingMilestones,
+)
 
 /**
  * @openapi
@@ -57,10 +65,13 @@ adminMilestonesRouter.get(
  *         $ref: '#/components/responses/NotFoundError'
  */
 adminMilestonesRouter.get(
-  "/admin/milestones/:id",
-  requireAdmin,
-  getMilestoneById
-);
+	"/admin/milestones/:id",
+	requireAdmin,
+	validate({
+		params: milestoneReportIdParamSchema,
+	}),
+	getMilestoneById,
+)
 
 /**
  * @openapi
@@ -88,10 +99,14 @@ adminMilestonesRouter.get(
  *         description: Report already processed
  */
 adminMilestonesRouter.post(
-  "/admin/milestones/:id/approve",
-  requireAdmin,
-  approveMilestone
-);
+	"/admin/milestones/:id/approve",
+	requireAdmin,
+	validate({
+		params: milestoneReportIdParamSchema,
+		body: approveMilestoneBodySchema,
+	}),
+	approveMilestone,
+)
 
 /**
  * @openapi
@@ -131,10 +146,14 @@ adminMilestonesRouter.post(
  *         description: Report already processed
  */
 adminMilestonesRouter.post(
-  "/admin/milestones/:id/reject",
-  requireAdmin,
-  rejectMilestone
-);
+	"/admin/milestones/:id/reject",
+	requireAdmin,
+	validate({
+		params: milestoneReportIdParamSchema,
+		body: rejectMilestoneBodySchema,
+	}),
+	rejectMilestone,
+)
 
 /**
  * @openapi
@@ -150,15 +169,15 @@ adminMilestonesRouter.post(
  *         application/json:
  *           schema:
  *             type: object
- *             required: [scholarAddress, courseId, milestoneId]
+ *             required: [scholarAddress, course_id, milestone_id]
  *             properties:
  *               scholarAddress:
  *                 type: string
- *               courseId:
+ *               course_id:
  *                 type: string
- *               milestoneId:
+ *               milestone_id:
  *                 type: integer
- *               evidenceGithub:
+ *               evidenceGitHub:
  *                 type: string
  *               evidenceIpfsCid:
  *                 type: string
@@ -175,7 +194,19 @@ adminMilestonesRouter.post(
  *         description: Rate limit exceeded
  */
 adminMilestonesRouter.post(
-  "/milestones/submit",
-  milestoneSubmitRateLimiter,
-  submitMilestoneReport
-);
+	"/milestones/submit",
+	milestoneSubmitRateLimiter,
+	validate({
+		body: legacyMilestoneSubmitBodySchema,
+	}),
+	submitMilestoneReport,
+)
+
+adminMilestonesRouter.post(
+	"/milestones",
+	milestoneSubmitRateLimiter,
+	validate({
+		body: milestoneSubmitBodySchema,
+	}),
+	submitMilestoneReport,
+)
