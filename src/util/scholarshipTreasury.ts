@@ -1,4 +1,4 @@
-import { rpcUrl, networkPassphrase } from "./util"
+import { rpcUrl, networkPassphrase } from "../contracts/util"
 import { useWallet } from "../hooks/useWallet"
 
 // Contract interface for ScholarshipTreasury
@@ -28,17 +28,12 @@ export interface CreateProposalParams {
 // Mock contract implementation - replace with actual Stellar Soroban contract calls
 export class ScholarshipTreasury implements ScholarshipTreasuryContract {
 	private contractId: string
-	private { address, signAndSendTransaction } = useWallet()
 
 	constructor(contractId: string) {
 		this.contractId = contractId
 	}
 
 	async createProposal(params: CreateProposalParams): Promise<string> {
-		if (!address) {
-			throw new Error("Wallet not connected")
-		}
-
 		try {
 			// In a real implementation, this would:
 			// 1. Create a Stellar Soroban contract transaction
@@ -51,7 +46,6 @@ export class ScholarshipTreasury implements ScholarshipTreasuryContract {
 			
 			console.log("Creating proposal with params:", params)
 			console.log("Contract ID:", this.contractId)
-			console.log("Submitting from address:", address)
 
 			// Simulate contract call delay
 			await new Promise(resolve => setTimeout(resolve, 1500))
