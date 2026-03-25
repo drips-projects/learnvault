@@ -6,8 +6,8 @@ import LRNBalanceWidget from "../components/LRNBalanceWidget"
 import { WalletContext } from "../providers/WalletProvider"
 
 const shortenAddress = (addr: string) => {
-    if (!addr) return ""
-    return `${addr.slice(0, 5)}...${addr.slice(-4)}`
+	if (!addr) return ""
+	return `${addr.slice(0, 5)}...${addr.slice(-4)}`
 }
 
 const Dashboard: React.FC = () => {
@@ -170,15 +170,21 @@ const Dashboard: React.FC = () => {
     )
 }
 
-const StatCard = ({ label, value }: { label: string; value: string | number }) => (
-    <div className="glass-card p-4 sm:p-6 rounded-2xl border border-white/10 flex flex-col justify-center shadow-lg hover:border-white/20 transition-all duration-300 min-w-0 overflow-hidden">
-        <h3 className="text-brand-cyan/70 text-[9px] sm:text-xs font-bold uppercase tracking-widest mb-1 sm:mb-2 font-mono leading-tight">
-            {label}
-        </h3>
-        <p className="text-2xl sm:text-3xl md:text-4xl font-black text-white leading-none overflow-hidden text-ellipsis whitespace-nowrap">
-            {value}
-        </p>
-    </div>
+const StatCard = ({
+	label,
+	value,
+}: {
+	label: string
+	value: string | number
+}) => (
+	<div className="glass-card p-4 sm:p-6 rounded-2xl border border-white/10 flex flex-col justify-center shadow-lg hover:border-white/20 transition-all duration-300 min-w-0 overflow-hidden">
+		<h3 className="text-brand-cyan/70 text-[9px] sm:text-xs font-bold uppercase tracking-widest mb-1 sm:mb-2 font-mono leading-tight">
+			{label}
+		</h3>
+		<p className="text-2xl sm:text-3xl md:text-4xl font-black text-white leading-none overflow-hidden text-ellipsis whitespace-nowrap">
+			{value}
+		</p>
+	</div>
 )
 
 export default Dashboard
