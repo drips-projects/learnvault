@@ -1,30 +1,34 @@
 #![no_std]
 
 use soroban_sdk::{
-    Address, Env, String, Symbol, Vec, contract, contracterror, contractevent, contractimpl,
-    contracttype, panic_with_error, symbol_short,
+    Address, Env, String, Symbol, contract, contracterror, contractimpl, contracttype,
+    panic_with_error, symbol_short,
 };
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+const ADMIN_KEY: Symbol = symbol_short!("ADMIN");
 
+#[derive(Clone)]
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CourseConfig {
-    pub total_milestones: u32,
-    pub tokens_per_milestone: i128,
+pub enum DataKey {
+    Enrollment(Address, String),
+    MilestoneState(Address, String, u32),
+    MilestoneSubmission(Address, String, u32),
 }
 
-#[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[contracttype]
 pub enum MilestoneStatus {
+    NotStarted,
     Pending,
-    Verified,
+    Approved,
     Rejected,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
+pub struct MilestoneSubmission {
+    pub evidence_uri: String,
+    pub submitted_at: u64,
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScholarStats {
     pub enrolled_courses: u32,
@@ -45,16 +49,20 @@ pub enum DataKey {
     RejectionReason(Address, u32, u32), // (learner, course_id, milestone_id)
 }
 
-// ---------------------------------------------------------------------------
-// Storage keys
-// ---------------------------------------------------------------------------
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[contracttype]
+pub struct SubmittedEventData {
+    pub learner: Address,
+    pub course_id: String,
+    pub evidence_uri: String,
+}
 
-const ADMIN_KEY: Symbol = symbol_short!("ADMIN");
-const LEARN_TOKEN_KEY: Symbol = symbol_short!("LRN_TKN");
-
-// ---------------------------------------------------------------------------
-// Errors
-// ---------------------------------------------------------------------------
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[contracttype]
+pub struct EnrolledEventData {
+    pub learner: Address,
+    pub course_id: String,
+}
 
 #[contracterror]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
@@ -62,123 +70,43 @@ const LEARN_TOKEN_KEY: Symbol = symbol_short!("LRN_TKN");
 pub enum Error {
     AlreadyInitialized = 1,
     NotInitialized = 2,
-    Unauthorized = 3,
-    CourseNotFound = 4,
-    MilestoneAlreadyCompleted = 5,
-    CourseAlreadyComplete = 6,
-    InvalidMilestones = 7,
-    CourseAlreadyExists = 8,
-    NotEnrolled = 9,
-    MilestoneAlreadyVerified = 10,
-    MilestoneNotPending = 11,
-    InvalidMilestoneId = 12,
-    AlreadyEnrolled = 13,
+    AlreadyEnrolled = 3,
+    NotEnrolled = 4,
+    DuplicateSubmission = 5,
 }
-
-// ---------------------------------------------------------------------------
-// Events
-// ---------------------------------------------------------------------------
-
-#[contractevent]
-pub struct MilestoneCompleted {
-    pub learner: Address,
-    pub course_id: u32,
-    pub milestones_completed: u32,
-    pub tokens_minted: i128,
-}
-
-#[contractevent]
-pub struct CourseCompleted {
-    pub learner: Address,
-    pub course_id: u32,
-}
-
-#[contractevent]
-pub struct CourseAdded {
-    pub course_id: u32,
-    pub total_milestones: u32,
-    pub tokens_per_milestone: i128,
-}
-
-#[contractevent]
-pub struct MilestoneVerified {
-    pub learner: Address,
-    pub course_id: u32,
-    pub milestone_id: u32,
-}
-
-#[contractevent]
-pub struct MilestoneRejected {
-    pub learner: Address,
-    pub course_id: u32,
-    pub milestone_id: u32,
-    pub reason: String,
-}
-
-// ---------------------------------------------------------------------------
-// Contract
-// ---------------------------------------------------------------------------
 
 #[contract]
 pub struct CourseMilestone;
 
 #[contractimpl]
 impl CourseMilestone {
-    // -----------------------------------------------------------------------
-    // Initialization
-    // -----------------------------------------------------------------------
-
-    pub fn initialize(env: Env, admin: Address, learn_token_contract: Address) {
+    pub fn initialize(env: Env, admin: Address) {
         if env.storage().instance().has(&ADMIN_KEY) {
             panic_with_error!(&env, Error::AlreadyInitialized);
         }
         admin.require_auth();
-
         env.storage().instance().set(&ADMIN_KEY, &admin);
-        env.storage()
-            .instance()
-            .set(&LEARN_TOKEN_KEY, &learn_token_contract);
     }
 
-    // -----------------------------------------------------------------------
-    // Course management
-    // -----------------------------------------------------------------------
-
-    pub fn add_course(env: Env, course_id: u32, total_milestones: u32, tokens_per_milestone: i128) {
-        let admin = Self::get_admin(&env);
-        admin.require_auth();
-
-        if total_milestones == 0 {
-            panic_with_error!(&env, Error::InvalidMilestones);
-        }
-
-        let key = DataKey::Courses(course_id);
-        if env.storage().instance().has(&key) {
-            panic_with_error!(&env, Error::CourseAlreadyExists);
-        }
-
-        let config = CourseConfig {
-            total_milestones,
-            tokens_per_milestone,
-        };
-        env.storage().instance().set(&key, &config);
-
-        CourseAdded {
-            course_id,
-            total_milestones,
-            tokens_per_milestone,
-        }
-        .publish(&env);
-    }
-
-    // -----------------------------------------------------------------------
-    // Enrollment
-    // -----------------------------------------------------------------------
-
-    /// Enroll a learner in a course. The course must exist.
-    pub fn enroll(env: Env, learner: Address, course_id: u32) {
+    pub fn enroll(env: Env, learner: Address, course_id: String) {
+        Self::require_initialized(&env);
         learner.require_auth();
 
+        let key = DataKey::Enrollment(learner.clone(), course_id.clone());
+        if env.storage().persistent().has(&key) {
+            panic_with_error!(&env, Error::AlreadyEnrolled);
+        }
+
+        env.storage().persistent().set(&key, &true);
+        env.events().publish(
+            (symbol_short!("enrolled"),),
+            EnrolledEventData { learner, course_id },
+        );
+    }
+
+    pub fn is_enrolled(env: Env, learner: Address, course_id: String) -> bool {
+        let key = DataKey::Enrollment(learner, course_id);
+        env.storage().persistent().get(&key).unwrap_or(false)
         // Course must exist
         if !env.storage().instance().has(&DataKey::Courses(course_id)) {
             panic_with_error!(&env, Error::CourseNotFound);
@@ -319,125 +247,79 @@ impl CourseMilestone {
         }
     }
 
-    /// Admin-only: reject a pending milestone with a reason, emit event.
-    pub fn reject_milestone(
+    pub fn submit_milestone(
         env: Env,
         learner: Address,
-        course_id: u32,
+        course_id: String,
         milestone_id: u32,
-        reason: String,
+        evidence_uri: String,
     ) {
-        let admin = Self::get_admin(&env);
-        admin.require_auth();
+        Self::require_initialized(&env);
+        learner.require_auth();
 
-        // Course must exist
-        let course: CourseConfig = env
-            .storage()
-            .instance()
-            .get(&DataKey::Courses(course_id))
-            .unwrap_or_else(|| panic_with_error!(&env, Error::CourseNotFound));
-
-        if milestone_id == 0 || milestone_id > course.total_milestones {
-            panic_with_error!(&env, Error::InvalidMilestoneId);
+        if !Self::is_enrolled(env.clone(), learner.clone(), course_id.clone()) {
+            panic_with_error!(&env, Error::NotEnrolled);
         }
 
-        // Milestone must be in Pending state
-        let state_key = DataKey::MilestoneState(learner.clone(), course_id, milestone_id);
-        let status: MilestoneStatus = env
+        let state_key = DataKey::MilestoneState(learner.clone(), course_id.clone(), milestone_id);
+        let current_state = env
             .storage()
             .persistent()
-            .get(&state_key)
-            .unwrap_or_else(|| panic_with_error!(&env, Error::MilestoneNotPending));
+            .get::<_, MilestoneStatus>(&state_key)
+            .unwrap_or(MilestoneStatus::NotStarted);
 
-        if status != MilestoneStatus::Pending {
-            panic_with_error!(&env, Error::MilestoneNotPending);
+        if current_state != MilestoneStatus::NotStarted {
+            panic_with_error!(&env, Error::DuplicateSubmission);
         }
 
-        // Transition to Rejected
+        let submission = MilestoneSubmission {
+            evidence_uri: evidence_uri.clone(),
+            submitted_at: env.ledger().timestamp(),
+        };
+        let submission_key =
+            DataKey::MilestoneSubmission(learner.clone(), course_id.clone(), milestone_id);
+
+        env.storage().persistent().set(&submission_key, &submission);
         env.storage()
             .persistent()
-            .set(&state_key, &MilestoneStatus::Rejected);
+            .set(&state_key, &MilestoneStatus::Pending);
 
-        // Store the rejection reason
-        let reason_key = DataKey::RejectionReason(learner.clone(), course_id, milestone_id);
-        env.storage().persistent().set(&reason_key, &reason);
-
-        // Emit rejection event
-        MilestoneRejected {
-            learner,
-            course_id,
-            milestone_id,
-            reason,
-        }
-        .publish(&env);
+        env.events().publish(
+            (symbol_short!("submitted"), milestone_id),
+            SubmittedEventData {
+                learner,
+                course_id,
+                evidence_uri,
+            },
+        );
     }
 
-    // -----------------------------------------------------------------------
-    // Queries
-    // -----------------------------------------------------------------------
-
-    /// Get the milestone status for a specific (learner, course, milestone).
-    pub fn get_milestone_status(
+    pub fn get_milestone_state(
         env: Env,
         learner: Address,
-        course_id: u32,
+        course_id: String,
         milestone_id: u32,
-    ) -> Option<MilestoneStatus> {
+    ) -> MilestoneStatus {
+        let key = DataKey::MilestoneState(learner, course_id, milestone_id);
         env.storage()
             .persistent()
-            .get(&DataKey::MilestoneState(learner, course_id, milestone_id))
+            .get(&key)
+            .unwrap_or(MilestoneStatus::NotStarted)
     }
 
-    /// Get the rejection reason for a rejected milestone.
-    pub fn get_rejection_reason(
+    pub fn get_milestone_submission(
         env: Env,
         learner: Address,
-        course_id: u32,
+        course_id: String,
         milestone_id: u32,
-    ) -> Option<String> {
-        env.storage()
-            .persistent()
-            .get(&DataKey::RejectionReason(learner, course_id, milestone_id))
+    ) -> Option<MilestoneSubmission> {
+        let key = DataKey::MilestoneSubmission(learner, course_id, milestone_id);
+        env.storage().persistent().get(&key)
     }
 
-    // -----------------------------------------------------------------------
-    // Existing milestone + progress queries
-    // -----------------------------------------------------------------------
-
-    pub fn complete_milestone(env: Env, learner: Address, course_id: u32) {
-        let admin = Self::get_admin(&env);
-        admin.require_auth();
-
-        let course_key = DataKey::Courses(course_id);
-        let course: CourseConfig = env
-            .storage()
-            .instance()
-            .get(&course_key)
-            .unwrap_or_else(|| panic_with_error!(&env, Error::CourseNotFound));
-
-        let progress_key = DataKey::Progress(learner.clone(), course_id);
-        let current_progress: u32 = env.storage().instance().get(&progress_key).unwrap_or(0);
-
-        if current_progress >= course.total_milestones {
-            panic_with_error!(&env, Error::CourseAlreadyComplete);
-        }
-
-        let new_progress = current_progress + 1;
-        env.storage().instance().set(&progress_key, &new_progress);
-
-        let tokens_to_mint = course.tokens_per_milestone;
-        Self::mint_tokens(&env, learner.clone(), tokens_to_mint);
-
-        MilestoneCompleted {
-            learner: learner.clone(),
-            course_id,
-            milestones_completed: new_progress,
-            tokens_minted: tokens_to_mint,
-        }
-        .publish(&env);
-
-        if new_progress == course.total_milestones {
-            CourseCompleted { learner, course_id }.publish(&env);
+    fn require_initialized(env: &Env) {
+        if !env.storage().instance().has(&ADMIN_KEY) {
+            panic_with_error!(env, Error::NotInitialized);
         }
     }
 
@@ -551,8 +433,6 @@ mod learn_token_client {
         fn mint(env: Env, to: Address, amount: i128);
     }
 }
-
-pub use learn_token_client::LearnTokenClient;
 
 #[cfg(test)]
 mod test;
