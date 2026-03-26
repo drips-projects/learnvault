@@ -26,6 +26,7 @@ import {
 	shortenAddr,
 	type LeaderboardEntry,
 } from "../util/mockLeaderboardData"
+import { formatLRN } from "../util/tokenFormat"
 
 const PAGE_SIZE = 25
 
@@ -113,7 +114,7 @@ const LeaderboardRow: React.FC<RowProps> = ({
 				<span
 					className={`font-black text-sm ${medal ? medal.color : "text-white/80"}`}
 				>
-					{new Intl.NumberFormat().format(entry.lrnBalance)} LRN
+					{formatLRN(BigInt(entry.lrnBalance))} LRN
 				</span>
 			</td>
 
