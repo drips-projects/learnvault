@@ -1,25 +1,16 @@
-/**
- * pages/Profile.tsx
- *
- * Issue #44 — Add skeleton loading screens and empty state components
- * bakeronchain/learnvault
- *
- * Added: ProfileSkeleton and NoCredentialsEmptyState
- */
-
-import React, { useState, useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import {
-	ProfileSkeleton,
 	NoCredentialsEmptyState,
+	ProfileSkeleton,
 } from "../components/SkeletonLoader"
+import TxHashLink from "../components/TxHashLink"
 
 const Profile: React.FC = () => {
 	const { t } = useTranslation()
 	const [isLoading, setIsLoading] = useState(true)
 
-	// Issue #44 — Simulate async data fetch for skeleton demo
 	useEffect(() => {
 		const timer = setTimeout(() => setIsLoading(false), 2000)
 		return () => clearTimeout(timer)
@@ -35,18 +26,37 @@ const Profile: React.FC = () => {
 				program: "Soroban 101",
 				date: "2024-02-15",
 				artwork: "https://api.placeholder.com/150/150?text=S101",
+				txHash:
+					"4abf553f8be9368e4bfef9a9a5d8baa8354b178f90af77e523bc93c28c12d8fb",
 			},
 			{
 				id: "2",
 				program: "Smart Contract Masterclass",
 				date: "2024-03-20",
 				artwork: "https://api.placeholder.com/150/150?text=SCM",
+				txHash:
+					"8e1df4f2efef3f4a39d24802f91b0f2a68501259b6bdca6354ec4f15d6a3bb27",
+			},
+		],
+		history: [
+			{
+				id: "mint-1",
+				action: "Credential minted",
+				date: "2024-03-20",
+				txHash:
+					"2f54a54d8071f1482c33495e0ab162bb3c689f86492a56dfcd13fdb7e48ae6d2",
+			},
+			{
+				id: "reward-1",
+				action: "Reputation reward settled",
+				date: "2024-03-21",
+				txHash:
+					"54ef8fa89e823e95fd6f56df5907353c6fc5c5f7b50aa8b2ca18c8953d607c42",
 			},
 		],
 	}
 
 	if (isLoading) {
-		// Issue #44 — Profile skeleton
 		return (
 			<div className="p-12 max-w-6xl mx-auto text-white animate-in fade-in slide-in-from-bottom-8 duration-1000">
 				<ProfileSkeleton />
@@ -93,7 +103,6 @@ const Profile: React.FC = () => {
 				</div>
 
 				{user.nfts.length === 0 ? (
-					// Issue #44 — No credentials empty state
 					<NoCredentialsEmptyState />
 				) : (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -121,10 +130,16 @@ const Profile: React.FC = () => {
 									<h3 className="text-lg font-black mb-2 leading-tight group-hover:text-brand-cyan transition-colors">
 										{nft.program}
 									</h3>
-									<div className="flex justify-between items-center">
-										<p className="text-[10px] text-white/30 uppercase font-black tracking-widest">
-											{nft.date}
-										</p>
+									<div className="flex justify-between items-start gap-4">
+										<div>
+											<p className="text-[10px] text-white/30 uppercase font-black tracking-widest">
+												{nft.date}
+											</p>
+											<TxHashLink
+												hash={nft.txHash}
+												className="mt-3 inline-flex text-[10px] font-black uppercase tracking-widest text-brand-cyan hover:underline"
+											/>
+										</div>
 										<span className="text-[10px] text-brand-emerald font-black uppercase tracking-widest">
 											Verified ✓
 										</span>
@@ -134,6 +149,34 @@ const Profile: React.FC = () => {
 						))}
 					</div>
 				)}
+			</section>
+
+			<section className="mt-20">
+				<div className="flex items-center gap-4 mb-12">
+					<h2 className="text-2xl font-black tracking-tight">
+						Profile History
+					</h2>
+					<div className="h-px flex-1 bg-linear-to-r from-white/10 to-transparent" />
+				</div>
+				<div className="glass-card rounded-[2.5rem] p-8 flex flex-col gap-5">
+					{user.history.map((entry) => (
+						<div
+							key={entry.id}
+							className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-2xl border border-white/5 bg-white/5 px-6 py-5"
+						>
+							<div>
+								<p className="font-bold">{entry.action}</p>
+								<p className="text-[10px] text-white/30 uppercase font-black tracking-widest mt-1">
+									{entry.date}
+								</p>
+							</div>
+							<TxHashLink
+								hash={entry.txHash}
+								className="inline-flex text-[10px] font-black uppercase tracking-widest text-brand-cyan hover:underline"
+							/>
+						</div>
+					))}
+				</div>
 			</section>
 		</div>
 	)

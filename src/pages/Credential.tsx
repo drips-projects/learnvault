@@ -1,18 +1,19 @@
 import React, { useState } from "react"
 import { useParams } from "react-router-dom"
+import TxHashLink from "../components/TxHashLink"
 
 const Credential: React.FC = () => {
 	const { nftId } = useParams<{ nftId: string }>()
 	const [copySuccess, setCopySuccess] = useState(false)
 
-	// Mock NFT data for the viewer
 	const nft = {
 		id: nftId || "1",
 		programName: "Soroban Smart Contract Masterclass",
 		scholarName: "Alex Rivera",
 		completionDate: "October 24, 2024",
 		artworkUrl: "https://api.placeholder.com/600/600?text=ScholarNFT+Badge",
-		stellarExpertUrl: "https://stellar.expert/explorer/testnet/tx/...",
+		txHash:
+			"3f40a5c6f2e1471fa3f31ba6b59f7f0dcefc36e35d5b12fb96f0c8d9f6a8b4e1",
 		issuer: "LearnVault DAO",
 		reputationPoints: "50 LRN",
 	}
@@ -25,13 +26,11 @@ const Credential: React.FC = () => {
 
 	return (
 		<div className="py-20 px-6 min-h-screen flex flex-col items-center gap-16 text-white relative overflow-hidden">
-			{/* Background Glows */}
 			<div className="absolute top-1/4 left-1/4 w-[50%] h-[50%] bg-brand-cyan/10 blur-[150px] rounded-full -z-10" />
 			<div className="absolute bottom-1/4 right-1/4 w-[50%] h-[50%] bg-brand-purple/10 blur-[150px] rounded-full -z-10" />
 
 			<div className="iridescent-border p-[1px] rounded-[3rem] shadow-2xl animate-in fade-in zoom-in duration-1000">
 				<div className="glass-card w-full max-w-5xl rounded-[3rem] overflow-hidden flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-white/10">
-					{/* Artwork Section */}
 					<div className="md:w-5/12 relative aspect-square md:aspect-auto group">
 						<img
 							src={nft.artworkUrl}
@@ -52,7 +51,6 @@ const Credential: React.FC = () => {
 						</div>
 					</div>
 
-					{/* Content Section */}
 					<div className="md:w-7/12 p-16 flex flex-col justify-center">
 						<div className="mb-10">
 							<div className="flex items-center gap-3 mb-4">
@@ -98,16 +96,16 @@ const Credential: React.FC = () => {
 									</p>
 								</div>
 							</div>
+							<div className="col-span-2">
+								<label className="block text-[10px] uppercase font-black text-white/30 tracking-[3px] mb-2">
+									Transaction Hash
+								</label>
+								<TxHashLink
+									hash={nft.txHash}
+									className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#00d2ff] hover:underline"
+								/>
+							</div>
 						</div>
-
-						<a
-							href={nft.stellarExpertUrl}
-							target="_blank"
-							rel="noreferrer"
-							className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#00d2ff] hover:underline"
-						>
-							View on Stellar Expert ↗
-						</a>
 					</div>
 				</div>
 			</div>
