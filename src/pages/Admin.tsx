@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import TxHashLink from "../components/TxHashLink"
 
 const Admin: React.FC = () => {
 	const [activeSection, setActiveSection] = useState<string>("courses")
@@ -25,7 +26,6 @@ const Admin: React.FC = () => {
 
 	return (
 		<div className="flex min-h-screen text-white relative overflow-hidden">
-			{/* Background Accent */}
 			<div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-cyan/10 blur-[120px] rounded-full" />
 			<div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-purple/10 blur-[120px] rounded-full" />
 
@@ -55,7 +55,11 @@ const Admin: React.FC = () => {
 								)}
 								<span className="relative z-10 flex items-center gap-3">
 									<span
-										className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${activeSection === section ? "bg-brand-cyan scale-125 shadow-[0_0_10px_rgba(0,210,255,0.8)]" : "bg-transparent"}`}
+										className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+											activeSection === section
+												? "bg-brand-cyan scale-125 shadow-[0_0_10px_rgba(0,210,255,0.8)]"
+												: "bg-transparent"
+										}`}
 									/>
 									{section}
 								</span>
@@ -170,6 +174,10 @@ const MilestoneQueue: React.FC = () => {
 			amount: "50 USDC",
 			date: "2024-03-20",
 			proof: "ipfs://...",
+			reportTxHash:
+				"de6f42f58b785fd2292d9f79089ca7a8e6769f0aa65eb6fe2c56b1e4f82de6a1",
+			approvalTxHash:
+				"7d6a011db9a6f1cb966d2c1ed44b42d416f3b53d14f1277c59823d88efab4653",
 		},
 		{
 			id: 102,
@@ -177,6 +185,10 @@ const MilestoneQueue: React.FC = () => {
 			amount: "100 USDC",
 			date: "2024-03-21",
 			proof: "ipfs://...",
+			reportTxHash:
+				"f8b91a8d6c0553a46b8c273dc44efcc643c00d5ee12e45033cfc20a5c334f61a",
+			approvalTxHash:
+				"1ccf70a8e112cd40c2a86258183fbced9ae106470ab6ee741fe8e83f8d52b5a9",
 		},
 	])
 
@@ -215,6 +227,22 @@ const MilestoneQueue: React.FC = () => {
 								<p className="text-xs text-white/30 uppercase tracking-widest mt-1">
 									Requested: {sub.amount} • Submitted: {sub.date}
 								</p>
+								<div className="mt-3 flex flex-col gap-2">
+									<div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-widest text-white/30">
+										<span>Report</span>
+										<TxHashLink
+											hash={sub.reportTxHash}
+											className="text-brand-cyan hover:underline"
+										/>
+									</div>
+									<div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-widest text-white/30">
+										<span>Approval</span>
+										<TxHashLink
+											hash={sub.approvalTxHash}
+											className="text-brand-cyan hover:underline"
+										/>
+									</div>
+								</div>
 							</div>
 						</div>
 						<div className="flex gap-3">
@@ -345,7 +373,7 @@ const TreasuryControls: React.FC = () => {
 					}`}
 					onClick={() => setIsPaused(!isPaused)}
 				>
-					{isPaused ? "▶ Resume DAO Treasury" : "⏸ Emergency Pause"}
+					{isPaused ? "Resume DAO Treasury" : "Emergency Pause"}
 				</button>
 			</div>
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -445,8 +473,7 @@ const ContractInfo: React.FC = () => {
 							</code>
 						</div>
 						<p className="text-[10px] text-white/30 uppercase tracking-[2px]">
-							Last Audit/Update:{" "}
-							<span className="text-white/60">{c.updated}</span>
+							Last Audit/Update: <span className="text-white/60">{c.updated}</span>
 						</p>
 					</div>
 				))}
