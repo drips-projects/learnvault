@@ -66,6 +66,7 @@ function createWrapper(address?: string) {
 		address,
 		balances: {},
 		isPending: false,
+		isReconnecting: false,
 		signTransaction,
 		updateBalances: vi.fn(),
 	}
@@ -74,11 +75,11 @@ function createWrapper(address?: string) {
 
 	return function Wrapper({ children }: { children: ReactNode }) {
 		return createElement(
-			QueryClientProvider,
-			{ client: queryClient },
+			ToastProvider,
+			null,
 			createElement(
-				ToastProvider,
-				null,
+				QueryClientProvider,
+				{ client: queryClient },
 				createElement(
 					WalletContext.Provider,
 					{ value: walletCtx },
