@@ -2,8 +2,8 @@
 #![allow(deprecated)]
 
 use soroban_sdk::{
-    Address, Env, String, Symbol, Vec, contract, contracterror, contractimpl, contracttype,
-    panic_with_error, symbol_short,
+    Address, Env, String, Symbol, Vec, contract, contracterror, contractevent, contractimpl,
+    contracttype, panic_with_error, symbol_short,
 };
 
 #[contracttype]
@@ -12,6 +12,15 @@ pub enum DataKey {
     MilestoneState(Address, String, u32),
     MilestoneSubmission(Address, String, u32),
     EnrolledCourses(Address),
+    Course(String),
+    CourseIds,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[contracttype]
+pub struct CourseConfig {
+    pub milestone_count: u32,
+    pub active: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -38,6 +47,13 @@ pub struct SubmittedEventData {
     pub evidence_uri: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[contracttype]
+pub struct EnrolledEventData {
+    pub learner: Address,
+    pub course_id: String,
+}
+
 const ADMIN_KEY: Symbol = symbol_short!("ADMIN");
 const LEARN_TOKEN_KEY: Symbol = symbol_short!("LRN_TKN");
 
@@ -53,6 +69,9 @@ pub enum Error {
     CourseAlreadyComplete = 6,
     InvalidMilestones = 7,
     CourseAlreadyExists = 8,
+    AlreadyEnrolled = 9,
+    NotEnrolled = 10,
+    DuplicateSubmission = 11,
 }
 
 #[contractevent]
@@ -87,11 +106,96 @@ impl CourseMilestone {
         }
         admin.require_auth();
         env.storage().instance().set(&ADMIN_KEY, &admin);
+        env.storage()
+            .instance()
+            .set(&LEARN_TOKEN_KEY, &learn_token_contract);
+    }
+
+    // Design decision: only the initialized admin can create course records.
+    // Design decision: course IDs are unique forever and removed courses stay on-chain as inactive records.
+    // Design decision: milestone_count must be > 0 so course configuration cannot represent an empty track.
+    pub fn add_course(env: Env, admin: Address, course_id: String, milestone_count: u32) {
+        Self::require_initialized(&env);
+        Self::require_admin(&env, &admin);
+
+        if milestone_count == 0 {
+            panic_with_error!(&env, Error::InvalidMilestones);
+        }
+
+        let course_key = DataKey::Course(course_id.clone());
+        if env.storage().persistent().has(&course_key) {
+            panic_with_error!(&env, Error::CourseAlreadyExists);
+        }
+
+        let config = CourseConfig {
+            milestone_count,
+            active: true,
+        };
+        env.storage().persistent().set(&course_key, &config);
+
+        let mut course_ids: Vec<String> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::CourseIds)
+            .unwrap_or_else(|| Vec::new(&env));
+        course_ids.push_back(course_id);
+        env.storage()
+            .persistent()
+            .set(&DataKey::CourseIds, &course_ids);
+    }
+
+    // Design decision: removed courses are marked inactive instead of deleted so historical references remain valid.
+    pub fn remove_course(env: Env, admin: Address, course_id: String) {
+        Self::require_initialized(&env);
+        Self::require_admin(&env, &admin);
+
+        let course_key = DataKey::Course(course_id);
+        let mut config: CourseConfig = env
+            .storage()
+            .persistent()
+            .get(&course_key)
+            .unwrap_or_else(|| panic_with_error!(&env, Error::CourseNotFound));
+        config.active = false;
+        env.storage().persistent().set(&course_key, &config);
+    }
+
+    pub fn get_course(env: Env, course_id: String) -> Option<CourseConfig> {
+        let course_key = DataKey::Course(course_id);
+        env.storage().persistent().get(&course_key)
+    }
+
+    pub fn list_courses(env: Env) -> Vec<String> {
+        let course_ids: Vec<String> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::CourseIds)
+            .unwrap_or_else(|| Vec::new(&env));
+
+        let mut active_courses = Vec::new(&env);
+        let mut i = 0;
+        while i < course_ids.len() {
+            let course_id = course_ids.get(i).unwrap();
+            let course_key = DataKey::Course(course_id.clone());
+            let config: Option<CourseConfig> = env.storage().persistent().get(&course_key);
+            if let Some(current) = config {
+                if current.active {
+                    active_courses.push_back(course_id);
+                }
+            }
+            i += 1;
+        }
+
+        active_courses
     }
 
     pub fn enroll(env: Env, learner: Address, course_id: String) {
         Self::require_initialized(&env);
         learner.require_auth();
+
+        // Enrollment is only allowed for registered, active courses.
+        if !Self::is_course_active(&env, &course_id) {
+            panic_with_error!(&env, Error::CourseNotFound);
+        }
 
         let key = DataKey::Enrollment(learner.clone(), course_id.clone());
         if env.storage().persistent().has(&key) {
@@ -220,9 +324,31 @@ impl CourseMilestone {
             panic_with_error!(env, Error::NotInitialized);
         }
     }
-}
 
-pub use learn_token_client::LearnTokenClient;
+    fn require_admin(env: &Env, admin: &Address) {
+        admin.require_auth();
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&ADMIN_KEY)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NotInitialized));
+        if stored_admin != *admin {
+            panic_with_error!(env, Error::Unauthorized);
+        }
+    }
+
+    fn is_course_active(env: &Env, course_id: &String) -> bool {
+        let course_key = DataKey::Course(course_id.clone());
+        match env
+            .storage()
+            .persistent()
+            .get::<_, CourseConfig>(&course_key)
+        {
+            Some(config) => config.active,
+            None => false,
+        }
+    }
+}
 
 #[cfg(test)]
 mod test;
