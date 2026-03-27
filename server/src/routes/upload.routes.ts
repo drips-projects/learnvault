@@ -61,27 +61,9 @@ export function createUploadRouter(jwtService: JwtService): Router {
 	 *     summary: Pin NFT metadata to IPFS
 	 *     security:
 	 *       - bearerAuth: []
-	 *     requestBody:
-	 *       required: true
-	 *       content:
-	 *         application/json:
-	 *           schema:
-	 *             type: object
 	 *     responses:
 	 *       201:
-	 *         description: NFT metadata pinned successfully
-	 *         content:
-	 *           application/json:
-	 *             schema:
-	 *               type: object
-	 *               properties:
-	 *                 cid:
-	 *                   type: string
-	 *                 gatewayUrl:
-	 *                   type: string
-	 *                 tokenUri:
-	 *                   type: string
-	 *                   example: ipfs://bafybei...
+	 *         description: Metadata pinned successfully
 	 *       400:
 	 *         $ref: '#/components/responses/BadRequestError'
 	 *       401:
