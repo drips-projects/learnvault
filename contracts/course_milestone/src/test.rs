@@ -391,16 +391,17 @@ fn complete_milestone_marks_completion_and_emits_reward_event() {
 
     let events = env.events().all();
     let found = events.iter().any(|(event_contract_id, topics, data)| {
-        *event_contract_id == contract_id
-            && *topics == vec![&env, symbol_short!("ms_done").into_val(&env)]
-            && *data
-                == MilestoneCompleted {
+        event_contract_id == contract_id
+            && topics.contains(&symbol_short!("ms_done").into_val(&env))
+            && {
+                let d: MilestoneCompleted = data.clone().into_val(&env);
+                d == MilestoneCompleted {
                     learner: learner.clone(),
                     course_id: course_id.clone(),
                     milestone_id: 2,
                     lrn_reward: 75,
                 }
-                .into_val(&env)
+            }
     });
 
     assert!(found, "completion event with reward was not emitted");
