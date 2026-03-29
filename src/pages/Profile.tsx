@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react"
+import React, { useCallback, useContext, useEffect, useState } from "react"
 import { Helmet } from "react-helmet"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
@@ -10,47 +10,100 @@ import {
 	NoCredentialsEmptyState,
 	ProfileSkeleton,
 } from "../components/SkeletonLoader"
+import { ErrorState } from "../components/states/errorState"
 import { WalletContext } from "../providers/WalletProvider"
 import { shortenAddress } from "../util/scholarshipApplications"
+
+type UserNft = {
+	id: string
+	course_id?: string
+	program: string
+	date: string
+	artwork?: string
+}
 
 const Profile: React.FC = () => {
 	const { t } = useTranslation()
 	const { address: walletAddress } = useContext(WalletContext)
 	const [isLoading, setIsLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
+	const [nfts, setNfts] = useState<UserNft[]>([])
+
+	const fetchCredentials = useCallback(async () => {
+		if (!walletAddress) {
+			setNfts([])
+			setIsLoading(false)
+			return
+		}
+
+		try {
+			setIsLoading(true)
+			setError(null)
+
+			const response = await fetch(`/api/credentials/${walletAddress}`, {
+				method: "GET",
+			})
+
+			if (!response.ok) {
+				const payload = await response.json().catch(() => ({}))
+				throw new Error(
+					payload.message || payload.error || "Unable to load credentials",
+				)
+			}
+
+			const data = await response.json()
+			setNfts(
+				Array.isArray(data.data)
+					? data.data.map((item: any) => ({
+							id: String(item.token_id ?? item.course_id ?? Math.random()),
+							course_id: item.course_id,
+							program: item.course_id ?? "Unknown course",
+							date: item.minted_at
+								? new Date(item.minted_at).toLocaleDateString()
+								: "Unknown",
+							artwork: item.metadata_uri
+								? `https://gateway.pinata.cloud/ipfs/${item.metadata_uri.replace("ipfs://", "")}`
+								: undefined,
+						}))
+					: [],
+			)
+		} catch (err) {
+			console.error("[profile] error loading credentials", err)
+			setError(
+				err instanceof Error ? err.message : "Failed to load credentials",
+			)
+		} finally {
+			setIsLoading(false)
+		}
+	}, [walletAddress])
 
 	useEffect(() => {
-		const timer = setTimeout(() => setIsLoading(false), 2000)
-		return () => clearTimeout(timer)
-	}, [])
-
-	const user = {
-		lrnBalance: "100,000",
-		name: walletAddress ? shortenAddress(walletAddress) : "Learner",
-		address: walletAddress ?? "",
-		nfts: [
-			{
-				program: "Soroban 101",
-				date: "2024-02-15",
-				artwork: "https://api.placeholder.com/150/150?text=S101",
-			},
-			{
-				id: "2",
-				program: "Smart Contract Masterclass",
-				date: "2024-03-20",
-				artwork: "https://api.placeholder.com/150/150?text=SCM",
-			},
-		],
-	}
+		void fetchCredentials()
+	}, [fetchCredentials])
 
 	const siteUrl = "https://learnvault.app"
-	const coursesCompleted = user.nfts.length
-	const title = `${user.name} — ${user.lrnBalance} · ${coursesCompleted} Course${coursesCompleted !== 1 ? "s" : ""} — LearnVault`
-	const description = `${user.name} has completed ${coursesCompleted} course${coursesCompleted !== 1 ? "s" : ""} and earned ${user.lrnBalance} on LearnVault.`
+	const userName = walletAddress ? shortenAddress(walletAddress) : "Learner"
+	const lrnBalance = "100,000"
+	const coursesCompleted = nfts.length
+	const title = `${userName} — ${lrnBalance} · ${coursesCompleted} Course${
+		coursesCompleted !== 1 ? "s" : ""
+	} — LearnVault`
+	const description = `${userName} has completed ${coursesCompleted} course${
+		coursesCompleted !== 1 ? "s" : ""
+	} and earned ${lrnBalance} on LearnVault.`
 
 	if (isLoading) {
 		return (
 			<div className="p-12 max-w-6xl mx-auto text-white animate-in fade-in slide-in-from-bottom-8 duration-1000">
 				<ProfileSkeleton />
+			</div>
+		)
+	}
+
+	if (error) {
+		return (
+			<div className="p-12 max-w-6xl mx-auto text-white animate-in fade-in slide-in-from-bottom-8 duration-1000">
+				<ErrorState message={error} onRetry={fetchCredentials} />
 			</div>
 		)
 	}
@@ -113,11 +166,11 @@ const Profile: React.FC = () => {
 					<div className="h-px flex-1 bg-linear-to-r from-white/10 to-transparent" />
 				</div>
 
-				{user.nfts.length === 0 ? (
+				{nfts.length === 0 ? (
 					<NoCredentialsEmptyState />
 				) : (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-						{user.nfts.map((nft, index) => (
+						{nfts.map((nft, index) => (
 							<Link
 								to={`/credentials/${nft.id}`}
 								key={nft.id}
@@ -126,12 +179,18 @@ const Profile: React.FC = () => {
 								style={{ animationDelay: `${index * 150}ms` }}
 							>
 								<div className="relative aspect-square overflow-hidden mb-2">
-									<img
-										src={nft.artwork}
-										alt={`Credential artwork for ${nft.program}`}
-										className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 opacity-80 group-hover:opacity-100"
-										loading="lazy"
-									/>
+									{nft.artwork ? (
+										<img
+											src={nft.artwork}
+											alt={`Credential artwork for ${nft.program}`}
+											className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 opacity-80 group-hover:opacity-100"
+											loading="lazy"
+										/>
+									) : (
+										<div className="w-full h-full bg-white/5 flex items-center justify-center text-white/30">
+											No Image
+										</div>
+									)}
 									<div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 									<div className="absolute bottom-4 left-4 right-4 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500">
 										<span

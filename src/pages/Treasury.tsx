@@ -9,6 +9,8 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts"
+import { EmptyState } from "../components/states/emptyState"
+import { ErrorState } from "../components/states/errorState"
 import TxHashLink from "../components/TxHashLink"
 import { useContractIds } from "../hooks/useContractIds"
 import { useUSDC } from "../hooks/useUSDC"
@@ -40,31 +42,50 @@ const Treasury: React.FC = () => {
 	const [stats, setStats] = useState<TreasuryStats | null>(null)
 	const [activity, setActivity] = useState<TreasuryEvent[]>([])
 	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
+
+	const fetchTreasuryData = async () => {
+		try {
+			setError(null)
+			setLoading(true)
+
+			const [statsRes, activityRes] = await Promise.all([
+				fetch(`${API_BASE}/api/treasury/stats`),
+				fetch(`${API_BASE}/api/treasury/activity?limit=20`),
+			])
+
+			if (statsRes.ok) {
+				const statsData = await statsRes.json()
+				setStats(statsData)
+			} else {
+				const payload = await statsRes.json().catch(() => ({}))
+				throw new Error(
+					payload.message || payload.error || "Failed to load treasury stats",
+				)
+			}
+
+			if (activityRes.ok) {
+				const activityData = await activityRes.json()
+				setActivity(activityData.events || [])
+			} else {
+				const payload = await activityRes.json().catch(() => ({}))
+				throw new Error(
+					payload.message ||
+						payload.error ||
+						"Failed to load treasury activity",
+				)
+			}
+		} catch (err) {
+			console.error("Failed to fetch treasury data:", err)
+			setError(
+				err instanceof Error ? err.message : "Failed to load treasury data",
+			)
+		} finally {
+			setLoading(false)
+		}
+	}
 
 	useEffect(() => {
-		const fetchTreasuryData = async () => {
-			try {
-				const [statsRes, activityRes] = await Promise.all([
-					fetch(`${API_BASE}/api/treasury/stats`),
-					fetch(`${API_BASE}/api/treasury/activity?limit=20`),
-				])
-
-				if (statsRes.ok) {
-					const statsData = await statsRes.json()
-					setStats(statsData)
-				}
-
-				if (activityRes.ok) {
-					const activityData = await activityRes.json()
-					setActivity(activityData.events || [])
-				}
-			} catch (err) {
-				console.error("Failed to fetch treasury data:", err)
-			} finally {
-				setLoading(false)
-			}
-		}
-
 		void fetchTreasuryData()
 	}, [])
 
@@ -112,6 +133,8 @@ const Treasury: React.FC = () => {
 		return `${diffDays}d ago`
 	}
 
+	const siteUrl = "https://learnvault.app"
+
 	const displayStats = stats
 		? {
 				// Use contract balance if available, otherwise use API data
@@ -135,21 +158,37 @@ const Treasury: React.FC = () => {
 				donorsCount: "...",
 			}
 
-	const deposits = activity.filter((e) => e.type === "deposit").slice(0, 2)
-	const disbursements = activity
-		.filter((e) => e.type === "disburse")
-		.slice(0, 2)
+	if (loading || treasuryLoading) {
+		return (
+			<div className="p-12 max-w-7xl mx-auto min-h-screen text-white animate-in fade-in duration-1000">
+				<div className="flex flex-col items-center justify-center h-[60vh]">
+					<div className="w-12 h-12 border-4 border-brand-cyan/20 border-t-brand-cyan rounded-full animate-spin mb-4" />
+					<p className="text-white/60 font-medium">Loading treasury data...</p>
+				</div>
+			</div>
+		)
+	}
 
-	const siteUrl = "https://learnvault.app"
-	const title = `Treasury - ${displayStats.totalTreasury} - ${displayStats.scholarsFunded} Scholars Funded - LearnVault`
-	const description = `LearnVault's decentralized scholarship treasury holds ${displayStats.totalTreasury} and has funded ${displayStats.scholarsFunded} scholars. View real-time inflows and disbursements.`
+	if (error) {
+		return (
+			<div className="p-12 max-w-7xl mx-auto min-h-screen text-white animate-in fade-in duration-1000">
+				<ErrorState message={error} onRetry={() => void fetchTreasuryData()} />
+			</div>
+		)
+	}
 
 	return (
 		<div className="p-12 max-w-7xl mx-auto min-h-screen text-white animate-in fade-in duration-1000">
 			<Helmet>
-				<title>{title}</title>
-				<meta property="og:title" content={title} />
-				<meta property="og:description" content={description} />
+				<title>{`Treasury - ${displayStats.totalTreasury}`}</title>
+				<meta
+					property="og:title"
+					content={`Treasury - ${displayStats.totalTreasury}`}
+				/>
+				<meta
+					property="og:description"
+					content="LearnVault's decentralized scholarship treasury holds funds and tracks grants."
+				/>
 				<meta property="og:image" content={`${siteUrl}/og-image.png`} />
 				<meta property="og:url" content={`${siteUrl}/treasury`} />
 				<meta name="twitter:card" content="summary_large_image" />
@@ -220,28 +259,42 @@ const Treasury: React.FC = () => {
 			</div>
 
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-				<ActivityFeed
-					title="Recent Community Deposits"
-					items={deposits.map((event) => ({
-						user: formatAddress(event.address || "unknown"),
-						amount: `+${formatAmount(event.amount || "0")} USDC`,
-						time: formatTime(event.created_at),
-						type: "deposit" as const,
-						txHash: event.tx_hash,
-					}))}
-					loading={loading}
-				/>
-				<ActivityFeed
-					title="Latest Disbursements"
-					items={disbursements.map((event) => ({
-						user: formatAddress(event.scholar || "unknown"),
-						amount: `-${formatAmount(event.amount || "0")} USDC`,
-						time: formatTime(event.created_at),
-						type: "disburse" as const,
-						txHash: event.tx_hash,
-					}))}
-					loading={loading}
-				/>
+				{activity.length === 0 ? (
+					<div className="lg:col-span-2">
+						<EmptyState
+							icon="📭"
+							title="No treasury transactions yet"
+							description="No deposits or disbursements have been recorded yet. Check back soon for updates."
+							ctaLabel="Refresh"
+							ctaHref="#"
+						/>
+					</div>
+				) : (
+					<>
+						<ActivityFeed
+							title="Recent Community Deposits"
+							items={deposits.map((event) => ({
+								user: formatAddress(event.address || "unknown"),
+								amount: `+${formatAmount(event.amount || "0")} USDC`,
+								time: formatTime(event.created_at),
+								type: "deposit" as const,
+								txHash: event.tx_hash,
+							}))}
+							loading={loading}
+						/>
+						<ActivityFeed
+							title="Latest Disbursements"
+							items={disbursements.map((event) => ({
+								user: formatAddress(event.scholar || "unknown"),
+								amount: `-${formatAmount(event.amount || "0")} USDC`,
+								time: formatTime(event.created_at),
+								type: "disburse" as const,
+								txHash: event.tx_hash,
+							}))}
+							loading={loading}
+						/>
+					</>
+				)}
 			</div>
 
 			<div className="mt-20 text-center">

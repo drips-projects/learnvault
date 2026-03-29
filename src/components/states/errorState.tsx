@@ -1,5 +1,4 @@
 import { AlertCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
 interface ErrorStateProps {
 	message?: string
@@ -16,18 +15,13 @@ export function ErrorState({
 			<h3 className="text-lg font-semibold">Failed to load</h3>
 			<p className="text-sm text-muted-foreground mt-1 max-w-sm">{message}</p>
 			{onRetry && (
-				<Button variant="outline" className="mt-4" onClick={onRetry}>
+				<button
+					onClick={onRetry}
+					className="mt-4 px-4 py-2 text-sm border border-input rounded-md hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer hover:text-black hover:border-gray-300 hover:bg-gray-100  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary   "
+				>
 					Try again
-				</Button>
+				</button>
 			)}
 		</div>
 	)
 }
-
-// ### Step 3 — Update Each Page
-
-// For each page, the pattern is:
-// if (isLoading) → show skeleton
-// if (isError)   → show <ErrorState onRetry={refetch} />
-// if (data.length === 0) → show <EmptyState ... />
-// else → render the list
