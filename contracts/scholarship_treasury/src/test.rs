@@ -1432,6 +1432,7 @@ fn full_flow_edge_case_exact_balance_disburse() {
 #[cfg(test)]
 mod fuzz_tests {
     use super::*;
+    use crate::GOV_PER_USDC;
     use proptest::prelude::*;
 
     proptest! {
@@ -1439,17 +1440,20 @@ mod fuzz_tests {
 
         #[test]
         #[ignore]
-        fn fuzz_deposit_amounts(amount in 1..i128::MAX) {
+        fn fuzz_deposit_amounts(amount in 1..=(i128::MAX / GOV_PER_USDC)) {
             let env = Env::default();
             let (client, _, donor, _, token_id, gov_client) = setup(&env);
             env.mock_all_auths();
+
+            // Ensure donor has sufficient balance for the randomized deposit.
+            StellarAssetClient::new(&env, &token_id).mint(&donor, &amount);
 
             client.deposit(&donor, &amount);
 
             assert_eq!(client.get_donor_total(&donor), amount);
             assert_eq!(client.get_balance(), amount);
             assert_eq!(token_client(&env, &token_id).balance(&client.address), amount);
-            assert_eq!(gov_client.balance(&donor), amount);
+            assert_eq!(gov_client.balance(&donor), amount * GOV_PER_USDC);
         }
 
         #[test]
