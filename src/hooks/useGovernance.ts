@@ -4,6 +4,8 @@ import { useToast } from "../components/Toast/ToastProvider"
 import { ErrorCode, createAppError } from "../types/errors"
 import type { RawContractProposal } from "../types/governance"
 import type { Proposal } from "../types/contracts"
+import { type Proposal, type RawContractProposal } from "../types/governance"
+import { logger } from "../utils/logger"
 import { isUserRejection, parseError } from "../utils/errors"
 import { useWallet } from "./useWallet"
 
@@ -212,7 +214,7 @@ export function useGovernance() {
 			>
 			return (mod.default as Record<string, unknown>) ?? mod
 		} catch (err) {
-			console.warn(
+			logger.warn(
 				createAppError(
 					ErrorCode.CONTRACT_NOT_DEPLOYED,
 					"Contract not available",
@@ -243,7 +245,7 @@ export function useGovernance() {
 						: raw) ?? "",
 				)
 				if (version && version !== EXPECTED_CONTRACT_VERSION) {
-					console.warn(
+					logger.warn(
 						`[GovernanceToken] Version mismatch: expected ${EXPECTED_CONTRACT_VERSION}, got ${version}. ` +
 							"Client bindings may be out of date.",
 					)
@@ -274,7 +276,7 @@ export function useGovernance() {
 						: raw) ?? "",
 				)
 				if (version && version !== EXPECTED_CONTRACT_VERSION) {
-					console.warn(
+					logger.warn(
 						`[ScholarshipTreasury] Version mismatch: expected ${EXPECTED_CONTRACT_VERSION}, got ${version}. ` +
 							"Client bindings may be out of date.",
 					)
@@ -345,13 +347,13 @@ export function useGovernance() {
 			)
 
 			const grouped = [
-				...pending.map((proposal) =>
+				...pending.map((proposal: unknown) =>
 					mapProposal(proposal as RawContractProposal, "Active"),
 				),
-				...approved.map((proposal) =>
+				...approved.map((proposal: unknown) =>
 					mapProposal(proposal as RawContractProposal, "Passed"),
 				),
-				...rejected.map((proposal) =>
+				...rejected.map((proposal: unknown) =>
 					mapProposal(proposal as RawContractProposal, "Rejected"),
 				),
 			]
@@ -363,7 +365,7 @@ export function useGovernance() {
 				["get_proposals", "getProposals"],
 				[[]],
 			)
-			return fallback.map((proposal) =>
+			return fallback.map((proposal: unknown) =>
 				mapProposal(proposal as RawContractProposal, "Active"),
 			)
 		},
@@ -420,7 +422,7 @@ export function useGovernance() {
 
 			const results: Record<number, boolean> = {}
 			await Promise.all(
-				proposals.map(async (p) => {
+				proposals.map(async (p: Proposal) => {
 					try {
 						const voted = await hasVotedFn({
 							voter: address,
@@ -488,10 +490,14 @@ export function useGovernance() {
 				{ publicKey: address },
 			)
 
+			showInfo("Waiting for wallet approval…")
 			const sendResult = await sendTxIfNeeded(tx)
 			unwrapSendResult(sendResult)
 		},
-		onSuccess: (_, { proposalId, support }) => {
+		onSuccess: (
+			_: void,
+			{ proposalId, support }: { proposalId: number; support: boolean },
+		) => {
 			showSuccess("Vote submitted successfully!")
 			// Invalidate queries to refresh UI
 			void queryClient.invalidateQueries({

@@ -7,6 +7,12 @@ import type {
 	Vote,
 	RpcEvent,
 	DonorStats,
+import {
+	type DonorData,
+	type DonorContribution,
+	type DonorStats,
+	type Vote,
+	type RpcEvent,
 } from "../types/contracts"
 import { useContractIds } from "./useContractIds"
 import { useWallet } from "./useWallet"

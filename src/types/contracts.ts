@@ -47,6 +47,15 @@ export interface LearnTokenInfo {
 	reputation_score: bigint
 	total_supply: bigint
 }
+export type { Proposal, RawContractProposal } from "./governance"
+
+// ---------------------------------------------------------------------------
+// Milestone types (on-chain CourseMilestone)
+// ---------------------------------------------------------------------------
+export type {
+	MilestoneReportFormValues,
+	SubmittedMilestoneReport,
+} from "./milestone"
 
 // ---------------------------------------------------------------------------
 // Existing app-specific helper types kept for backward compatibility with
