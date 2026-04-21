@@ -1500,21 +1500,21 @@ proptest! {
         let env = Env::default();
         let (client, _, donor, _, token_id, gov_client) = setup(&env);
         let sac = StellarAssetClient::new(&env, &token_id);
-        
-        // Mint enough USDC token to the donor
+
+        // mock_all_auths must come before sac.mint; setup() clears auths with set_auths(&[])
+        env.mock_all_auths();
         sac.mint(&donor, &(amount1 + amount2));
 
-        env.mock_all_auths();
         client.deposit(&donor, &amount1);
         let gov_bal1 = gov_client.balance(&donor);
-        
+
         client.deposit(&donor, &amount2);
         let gov_bal2 = gov_client.balance(&donor);
 
-        // Monotonically correct formula check
+        // Each deposited USDC mints GOV_PER_USDC (100) governance tokens
         assert!(gov_bal2 > gov_bal1);
-        assert_eq!(gov_bal1, amount1);
-        assert_eq!(gov_bal2, amount1 + amount2);
+        assert_eq!(gov_bal1, amount1 * 100);
+        assert_eq!(gov_bal2, (amount1 + amount2) * 100);
     }
 
     #[test]
