@@ -1,3 +1,4 @@
+import { useLeaderboard } from "../hooks/useLeaderboard"
 import { Trophy } from "lucide-react"
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -5,23 +6,11 @@ import AddressDisplay from "../components/AddressDisplay"
 import { EmptyState } from "../components/states/emptyState"
 import { ErrorState } from "../components/states/errorState"
 import { useWallet } from "../hooks/useWallet"
-import { API_URL } from "../lib/api"
 import { type LeaderboardEntry } from "../util/mockLeaderboardData"
-
-type LeaderboardApiEntry = {
-	rank: number
-	address: string
-	lrn_balance: string
-	courses_completed: number
-}
 
 const Leaderboard: React.FC = () => {
 	const { t } = useTranslation()
 	const { address: currentUserAddress } = useWallet()
-	const [leaders, setLeaders] = useState<LeaderboardEntry[]>([])
-	const [myRank, setMyRank] = useState<number | null>(null)
-	const [isLoading, setIsLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
 
 	const fetchLeaderboard = useCallback(async () => {
 		setIsLoading(true)

@@ -120,7 +120,7 @@ async function readJson<T>(response: Response): Promise<T> {
 	return data
 }
 
-async function fetchProposals(address?: string): Promise<ProposalListResponse> {
+export async function fetchProposals(address?: string): Promise<ProposalListResponse> {
 	const url = new URL(`${API_BASE}/api/proposals`)
 	if (address) {
 		url.searchParams.set("viewer_address", address)
@@ -171,12 +171,14 @@ export function useProposals() {
 	const proposalsQuery = useQuery({
 		queryKey: ["proposals", address],
 		queryFn: () => fetchProposals(address),
+		staleTime: 60 * 1000,
 	})
 
 	const votingPowerQuery = useQuery({
 		queryKey: ["proposals", "votingPower", address],
 		queryFn: () => fetchVotingPower(address),
 		enabled: Boolean(address),
+		staleTime: 60 * 1000,
 	})
 
 	const createProposalMutation = useMutation({
@@ -271,5 +273,6 @@ export function useProposal(proposalId: number | null) {
 		queryKey: ["proposal", proposalId, address],
 		queryFn: () => fetchProposal(proposalId as number, address),
 		enabled: proposalId !== null,
+		staleTime: 60 * 1000,
 	})
 }
