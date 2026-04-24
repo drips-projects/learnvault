@@ -7,7 +7,9 @@ import { stellarContractService } from "../services/stellar-contract.service"
 type ApiMilestoneStatus = "pending" | "verified" | "rejected"
 type InternalMilestoneStatus = "pending" | "approved" | "rejected"
 
-function mapInternalStatus(status: InternalMilestoneStatus): ApiMilestoneStatus {
+function mapInternalStatus(
+	status: InternalMilestoneStatus,
+): ApiMilestoneStatus {
 	if (status === "approved") return "verified"
 	return status
 }
@@ -40,10 +42,16 @@ export async function getScholarMilestones(
 	res: Response,
 ): Promise<void> {
 	const address = req.params.address
-	const courseId = typeof req.query.course_id === "string" ? req.query.course_id : undefined
-	const internalStatus = mapQueryStatus(
-		typeof req.query.status === "string" ? req.query.status : undefined,
-	)
+	const courseId =
+		typeof req.query.course_id === "string" ? req.query.course_id : undefined
+	const rawStatus =
+		typeof req.query.status === "string" ? req.query.status : undefined
+	const internalStatus = mapQueryStatus(rawStatus)
+
+	if (rawStatus && !internalStatus) {
+		res.status(400).json({ error: "Validation failed" })
+		return
+	}
 
 	try {
 		const reports = await milestoneStore.getReportsForScholar(address, {
@@ -69,7 +77,9 @@ export async function getScholarMilestones(
 					status: mapInternalStatus(report.status),
 					evidence_url: evidenceUrl,
 					submitted_at: toIsoDateTime(report.submitted_at),
-					verified_at: lastDecision ? toIsoDateTime(lastDecision.decided_at) : null,
+					verified_at: lastDecision
+						? toIsoDateTime(lastDecision.decided_at)
+						: null,
 					tx_hash: lastDecision?.contract_tx_hash ?? null,
 				}
 			}),
@@ -95,7 +105,8 @@ export async function getScholarsLeaderboard(
 ): Promise<void> {
 	const page = parsePositiveInt(req.query.page, 1)
 	const limit = Math.min(parsePositiveInt(req.query.limit, 50), 100)
-	const search = typeof req.query.search === "string" ? req.query.search.trim() : ""
+	const search =
+		typeof req.query.search === "string" ? req.query.search.trim() : ""
 	const offset = (page - 1) * limit
 
 	const whereClause = search ? "WHERE address ILIKE $1" : ""
@@ -161,9 +172,12 @@ export async function getScholarProfile(
 
 	try {
 		// 1. Fetch on-chain data
-		const lrn_balance = await stellarContractService.getLearnTokenBalance(address)
-		const enrolled_courses = await stellarContractService.getEnrolledCourses(address)
-		const credentials = await stellarContractService.getScholarCredentials(address)
+		const lrn_balance =
+			await stellarContractService.getLearnTokenBalance(address)
+		const enrolled_courses =
+			await stellarContractService.getEnrolledCourses(address)
+		const credentials =
+			await stellarContractService.getScholarCredentials(address)
 
 		// 2. Fetch database data
 		const milestoneStatsResult = await pool.query(
@@ -183,7 +197,8 @@ export async function getScholarProfile(
 			[address],
 		)
 		// Fallback to current time if no enrollments yet
-		const joinedAt = joinedAtResult.rows[0]?.joined_at ?? new Date().toISOString()
+		const joinedAt =
+			joinedAtResult.rows[0]?.joined_at ?? new Date().toISOString()
 
 		res.status(200).json({
 			address,
@@ -197,5 +212,26 @@ export async function getScholarProfile(
 	} catch (error) {
 		console.error("[scholars] Error fetching scholar profile:", error)
 		res.status(500).json({ error: "Failed to fetch scholar profile" })
+	}
+}
+
+export async function getScholarCredentials(
+	req: Request,
+	res: Response,
+): Promise<void> {
+	const { address } = req.params
+
+	if (!address) {
+		res.status(400).json({ error: "Scholar address is required" })
+		return
+	}
+
+	try {
+		const credentials =
+			await stellarContractService.getScholarCredentials(address)
+		res.status(200).json({ credentials })
+	} catch (error) {
+		console.error("[scholars] Error fetching scholar credentials:", error)
+		res.status(500).json({ error: "Failed to fetch scholar credentials" })
 	}
 }
