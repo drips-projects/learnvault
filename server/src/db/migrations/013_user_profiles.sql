@@ -1,12 +1,9 @@
--- Migration 013 originally introduced a richer user_profiles schema with a
--- `stellar_address` column. Earlier migrations already created `user_profiles`
--- with `address` as the primary key (see 009_user_profiles.sql).
---
--- This migration is written to be idempotent across both schemas so CI
--- migrations never fail on "column does not exist".
+-- User profiles table for rich profile data (bio, avatar, social links, etc.)
+-- This migration is expected to run on multiple baseline schema states.
+-- Make it idempotent and tolerant of older column names (e.g. `address`).
 
 -- Create the v2 schema only if the table does not exist at all.
--- If it exists (from 009), we avoid destructive changes.
+-- If it exists (from an older migration), we avoid destructive changes.
 CREATE TABLE IF NOT EXISTS user_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     stellar_address TEXT NOT NULL UNIQUE REFERENCES linked_wallets(stellar_address) ON DELETE CASCADE,
@@ -38,7 +35,7 @@ BEGIN
     END IF;
 END $$;
 
--- Display name search index is valid in both schemas (if the column exists).
+-- Index for searching by display name (safe even if display_name doesn't exist)
 DO $$
 BEGIN
     IF EXISTS (
@@ -50,7 +47,7 @@ BEGIN
     END IF;
 END $$;
 
--- Trigger to update updated_at on modification (only when the column exists).
+-- Trigger to update updated_at on modification (only if updated_at exists)
 DO $$
 BEGIN
     IF EXISTS (
@@ -58,20 +55,18 @@ BEGIN
         FROM information_schema.columns
         WHERE table_name = 'user_profiles' AND column_name = 'updated_at'
     ) THEN
-        EXECUTE $fn$
-            CREATE OR REPLACE FUNCTION update_user_profiles_updated_at()
-            RETURNS TRIGGER AS $$
-            BEGIN
-                NEW.updated_at = CURRENT_TIMESTAMP;
-                RETURN NEW;
-            END;
-            $$ LANGUAGE plpgsql;
-        $fn$;
+        CREATE OR REPLACE FUNCTION update_user_profiles_updated_at()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            NEW.updated_at = CURRENT_TIMESTAMP;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
 
-        EXECUTE 'DROP TRIGGER IF EXISTS trigger_user_profiles_updated_at ON user_profiles';
-        EXECUTE 'CREATE TRIGGER trigger_user_profiles_updated_at
+        DROP TRIGGER IF EXISTS trigger_user_profiles_updated_at ON user_profiles;
+        CREATE TRIGGER trigger_user_profiles_updated_at
             BEFORE UPDATE ON user_profiles
             FOR EACH ROW
-            EXECUTE FUNCTION update_user_profiles_updated_at()';
+            EXECUTE FUNCTION update_user_profiles_updated_at();
     END IF;
 END $$;
