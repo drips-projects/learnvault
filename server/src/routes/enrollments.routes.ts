@@ -66,7 +66,7 @@ export function createEnrollmentsRouter(jwtService: JwtService): Router {
 	 *         content:
 	 *           application/json:
 	 *             schema:
-	 *               $ref: '#/components/schemas/Error'
+	 *               $ref: '#/components/schemas/ErrorResponse'
 	 *       401:
 	 *         description: Unauthorized
 	 *       404:
