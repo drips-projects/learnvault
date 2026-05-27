@@ -8,7 +8,7 @@ import { OnboardingTour } from "./components/OnboardingTour"
 import TestnetBanner from "./components/TestnetBanner"
 import { ToastProvider } from "./components/Toast/ToastProvider"
 import { WalletToastWatcher } from "./components/WalletToastWatcher"
-import { useLocalizeDocumentAttributes } from "./hooks/useLocalizeDocumentAttributes"
+import { useLocalizeDocumentAttributes } from "./hooks/uselocalizeDocumentAttributes"
 import { NetworkProvider } from "./providers/NetworkProvider"
 
 const Admin = lazy(() => import("./pages/Admin"))
